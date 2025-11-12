@@ -1,0 +1,61 @@
+storenv
+.env
+
+# # Python
+# __pycache__/
+# *.py[cod]
+# *.so
+# *.egg
+# *.egg-info/
+# dist/
+# build/
+# .eggs/
+
+# # Django
+# *.log
+# *.pot
+# *.pyc
+# local_settings.py
+# # db.sqlite3
+# # media/
+# # staticfiles/
+# # static/
+# .env
+
+# # Virtual Environment
+# venv/
+# ENV/
+# env/
+# .venv/
+# storenv/
+
+# # IDEs and Editors
+# .vscode/
+# .idea/
+# *.sublime-project
+# *.sublime-workspace
+
+# # OS Files
+# .DS_Store
+# Thumbs.db
+
+# # Migrations (optional: ignore if you don’t want to commit migrations)
+# # */migrations/
+# # !*/migrations/__init__.py
+
+# # pytest / coverage
+# .coverage
+# coverage.xml
+# *.cover
+# htmlcov/
+# .pytest_cache/
+
+# # mypy
+# .mypy_cache/
+# .dmypy.json
+# dmypy.json
+
+# # PyCharm
+# *.iml
+# *.ipr
+# *.iws
