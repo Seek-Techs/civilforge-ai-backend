@@ -532,20 +532,20 @@ def verify_payment(request, reference):
 
 
 
-@api_view(["POST"])
-# @csrf_exempt
-def paystack_webhook(request):
-    event = json.loads(request.body)
-    if event["event"] == "charge.success":
-        reference = event["data"]["reference"]
-        try:
-            order = Order.objects.get(reference=reference)
-            order.is_paid = True
-            order.payment_status = "success"
-            order.save()
-        except Order.DoesNotExist:
-            pass
-    return Response(status=200)
+# @api_view(["POST"])
+# # @csrf_exempt
+# def paystack_webhook(request):
+#     event = json.loads(request.body)
+#     if event["event"] == "charge.success":
+#         reference = event["data"]["reference"]
+#         try:
+#             order = Order.objects.get(reference=reference)
+#             order.is_paid = True
+#             order.payment_status = "success"
+#             order.save()
+#         except Order.DoesNotExist:
+#             pass
+#     return Response(status=200)
 
 
 @api_view(['GET'])
@@ -646,12 +646,6 @@ def get_analytics_data(request):
     }
 
     return Response(data)
-
-
-
-
-
-
 
 
 def admin_dashboard_stats(request):
@@ -786,80 +780,3 @@ def user_is_logged_in(request):
     if user.is_authenticated:
         return Response({"is_logged_in": True, "email": user.email, "username": user.username})
     return Response({"is_logged_in": False}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-
-
-# @api_view(["GET"])
-# @permission_classes([IsAuthenticated])
-# def get_user_orders(request):
-#     orders = Order.objects.filter(user=request.user)
-#     serializer = OrderSerializer(orders, many=True)
-#     return Response(serializer.data)
-
-
-
-
-
-
-
-
-# @api_view(["POST"])
-# @permission_classes([IsAuthenticated])
-# def initialize_payment(request):
-#     email = request.user.email
-#     cart_code = request.data.get("cart_code")
-    
-#     if not email or not amount:
-#         return Response({"error": "Email and amount are required"}, status=status.HTTP_400_BAD_REQUEST)
-
-    
-
-#     cart = get_object_or_404(Cart, cart_code=cart_code)
-#     cartitems = cart.cartitems.all()
-
-#     cart_total = sum([item.product.price * item.quantity for item in cartitems])
-#     tax = cart_total * 0.08
-#     cart_total = cart_total + tax
-
-#     order = Order.objects.create(user=request.user, total_amount=cart_total)
-
-#     for item in cartitems:
-#         Orderitem.objects.create(order=order, product=item.product, quantity=item.quantity)
-
-#     amount = cart_total
-
-
-
-#     if amount:
-#         amount = int(amount) * 100
-
-    
-
-#     url = "https://api.paystack.co/transaction/initialize"
-#     headers = {
-#         "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
-#         "Content-Type": "application/json",
-#     }
-#     payload = {"email": email, "amount": amount, "callback_url": f"{FRONTEND_URL}/payment-status",}
-
-#     try:
-#         response = requests.post(url, json=payload, headers=headers)
-#         data = response.json()
-#         print("my response", response)
-#         if response.status_code == 200 and data.get("status"):
-#             order.reference=data["data"]["reference"]
-#             order.save()
-#             # # Save payment to DB
-#             # Payment.objects.create(
-#             #     email=email,
-#             #     amount=amount,
-#             #     reference=data["data"]["reference"],  # Paystack returns a unique reference
-#             #     status="pending",
-#             # )
-#             return Response(data, status=status.HTTP_200_OK)
-
-#         return Response(data, status=response.status_code)
-
-#     except requests.exceptions.RequestException as e:
-#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
