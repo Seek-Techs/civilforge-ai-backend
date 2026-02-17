@@ -16,6 +16,9 @@ from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("No SECRET_KEY in .env")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

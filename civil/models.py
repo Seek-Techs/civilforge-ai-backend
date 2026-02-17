@@ -1,10 +1,13 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 class Project(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
-    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,          # ← string reference, safe even if no custom user
+        on_delete=models.CASCADE
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     boq_output = models.JSONField(null=True, blank=True)   # will store structured result
 
