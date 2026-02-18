@@ -1,31 +1,42 @@
 # civil/views.py
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
+import logging
 from django.db import transaction
+from django.core.exceptions import ValidationError
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
 from .models import Project
-
-# Import what you actually use
 from langchain_core.messages import HumanMessage
-from .agents.boq_graph import graph   # ← assuming you named the file boq_graph.py
+from .agents.boq_graph import graph  # adjust path if needed
 
+logger = logging.getLogger(__name__)
 
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def analyze_boq(request, project_id):
     try:
-        project = Project.objects.get(id=project_id)
+        project = Project.objects.select_related('owner').get(id=project_id)
+
+        # Ownership check
+        if project.owner != request.user:
+            return Response(
+                {"detail": "You do not have permission to analyze this project."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         if request.method == 'GET':
             if project.boq_output:
                 return Response(project.boq_output)
             return Response({
-                "message": "No BOQ analysis yet. Send a POST request to trigger analysis."
+                "message": "No BOQ analysis available yet. Send POST to start."
             })
 
-        # ── POST ───────────────────────────────────────────────
-        if not project.description.strip():
+        # POST ──────────────────────────────────────────────────────
+        if not project.description or not project.description.strip():
             return Response(
-                {"error": "Project description is empty. Cannot generate BOQ."},
+                {"detail": "Project description is required for BOQ generation."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -37,28 +48,36 @@ def analyze_boq(request, project_id):
             }
 
             try:
-                final_state = graph.invoke(initial_state, {"recursion_limit": 50})
+                final_state = graph.invoke(
+                    initial_state,
+                    {"recursion_limit": 60, "max_iterations": 30}  # safety caps
+                )
                 output = final_state.get("boq_result")
 
                 if output is None:
-                    raise ValueError("Agent did not produce a valid BOQ result")
+                    raise ValueError("Agent returned no valid BOQ result")
 
                 project.boq_output = output
-                project.save(update_fields=["boq_output"])
+                project.save(update_fields=['boq_output'])
 
+                logger.info(f"BOQ generated for project {project_id} by user {request.user.id}")
                 return Response(output)
 
-            except Exception as agent_error:
-                # You can log this properly later (structlog, sentry, etc.)
+            except Exception as agent_exc:
+                logger.exception(f"Agent failed for project {project_id}: {str(agent_exc)}")
                 return Response(
                     {
-                        "error": "Agent execution failed",
-                        "detail": str(agent_error)
+                        "detail": "BOQ generation failed. Please try again or contact support.",
+                        "error_type": agent_exc.__class__.__name__,
+                        # "trace": str(final_state)  # optional — careful with size
                     },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
     except Project.DoesNotExist:
-        return Response({"error": "Project not found"}, status=404)
+        return Response({"detail": "Project not found"}, status=404)
+    except ValidationError as ve:
+        return Response({"detail": str(ve)}, status=400)
     except Exception as e:
-        return Response({"error": str(e)}, status=500)
+        logger.exception(f"Unexpected error in analyze_boq: {str(e)}")
+        return Response({"detail": "Internal server error"}, status=500)
